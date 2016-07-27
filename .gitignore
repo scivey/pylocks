@@ -1,0 +1,16 @@
+.env
+*.pyc
+__pycache__
+.cache
+build
+tmp
+*~
+*.log
+*.sublime-workspace
+.envrc-extra
+a.out
+*.so
+*.egg-info
+*.tar.gz
+dist
+
