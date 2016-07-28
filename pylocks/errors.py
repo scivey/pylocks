@@ -8,13 +8,13 @@ class ArityError(BaseLocksError, ValueError):
 class LockError(BaseLocksError, RuntimeError):
     pass
 
-class AlreadyLocked(LockError):
+class LockAlreadyHeld(LockError):
     pass
 
-class LockNotHeld(LockError):
+class LockNotOwned(LockError):
     pass
 
-class LockExpired(LockNotHeld):
+class LockExpired(LockNotOwned):
     pass
 
 class InvalidLockValue(LockError, ValueError):

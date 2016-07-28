@@ -1,9 +1,10 @@
 import time
 
 from pylocks.testing.redis_test import RedisTest
+from pylocks.testing.errors import BadNewsBears
 from pylocks.core.lock_handle_data import LockHandleData
 from pylocks.core.lock_request import LockRequest
-from pylocks.errors import LockNotHeld, LockExpired
+from pylocks.errors import LockNotOwned, LockExpired, LockAlreadyHeld
 from .single_lock_handle import SingleLockHandle
 from .base_redis_lock import BaseRedisLock
 
@@ -25,6 +26,7 @@ def make_handle_data(key, handle_id, ttl=20):
     )
     return data
 
+
 class TestSingleLockHandle(RedisTest):
     def setUp(self):
         super(TestSingleLockHandle, self).setUp()
@@ -36,7 +38,7 @@ class TestSingleLockHandle(RedisTest):
 
     def test_check_if_owned_1(self):
         handle = self.make_handle('some-lock', 'some-handle-id')
-        with self.assertRaises(LockNotHeld):
+        with self.assertRaises(LockNotOwned):
             handle.check_if_owned()
 
     def test_check_if_owned_2(self):
@@ -47,3 +49,49 @@ class TestSingleLockHandle(RedisTest):
     def test_get_handle_1(self):
         with self.assertRaises(LockExpired):
             self.lock.get_handle('foo', 'bar')
+
+    def test_releasing_1(self):
+        handle_data = make_handle_data('foo', 'bar')
+        handle = self.lock.acquire(handle_data.request)
+        handle.check_if_owned()
+        with self.assertRaises(BadNewsBears):
+            with handle.releasing():
+                raise BadNewsBears()
+
+        with self.assertRaises(LockNotOwned):
+            handle.check_if_owned()
+
+    def test_releasing_2(self):
+        acquire = lambda: self.lock.acquire(make_handle_data('foo', 'x').request)
+        handle = acquire()
+        handle.check_if_owned()
+
+        with self.assertRaises(LockAlreadyHeld):
+            acquire()
+
+        with self.assertRaises(BadNewsBears):
+            with handle.releasing():
+                raise BadNewsBears()
+
+        with self.assertRaises(LockNotOwned):
+            handle.check_if_owned()
+
+        handle2 = acquire()
+        handle2.check_if_owned()
+
+    def test_releasing_mismatched_id(self):
+        handle = self.lock.acquire(make_handle_data('foo', 'x').request)
+        handle.check_if_owned()
+        handle.handle_data.id = 'bad!'
+        with self.assertRaises(LockNotOwned):
+            with self.assertRaises(BadNewsBears):
+                with handle.releasing():
+                    raise BadNewsBears
+
+    def test_releasing_mismatched_id_no_failure(self):
+        handle = self.lock.acquire(make_handle_data('foo', 'x').request)
+        handle.check_if_owned()
+        handle.handle_data.id = 'bad!'
+        with self.assertRaises(BadNewsBears):
+            with handle.releasing(ignore_failure=True):
+                raise BadNewsBears

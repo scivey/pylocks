@@ -1,5 +1,6 @@
+from __future__ import print_function
 from pylocks.core.lock_handle_data import LockHandleData
-from pylocks.errors import LockExpired, LockNotHeld
+from pylocks.errors import LockExpired, LockNotOwned
 from redis import WatchError
 import contextlib
 
@@ -56,6 +57,7 @@ class SingleLockHandle(object):
         `expected_id`, raises `LockExpired`
         """
         data = redis_conn.get(key)
+        print(data)
         if not data:
             raise LockExpired(key, expected_id)
         instance = cls.deserialize(redis_conn=redis_conn, data=data)
@@ -68,7 +70,7 @@ class SingleLockHandle(object):
         Releases the held lock, *if* the lock's current
         ID is equal to this handle's.
 
-        On failure, Raises `LockNotHeld` if `ignore_failure` is not True.
+        On failure, Raises `LockNotOwned` if `ignore_failure` is not True.
         """
         with self.redis_conn.pipeline() as pipe:
             while True:
@@ -78,7 +80,7 @@ class SingleLockHandle(object):
                     if not current_value or not self._check_if_same_id(current_value):
                         if ignore_failure:
                             return False
-                        raise LockNotHeld(self.key, self.id)
+                        raise LockNotOwned(self.key, self.id)
                     pipe.multi()
                     pipe.delete(self.key)
                     pipe.execute()
@@ -98,6 +100,6 @@ class SingleLockHandle(object):
         finally:
             try:
                 self.release()
-            except LockNotHeld:
+            except LockNotOwned:
                 if not ignore_failure:
                     raise

@@ -3,7 +3,7 @@ import json
 import time
 from redis import WatchError
 
-from pylocks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
+from pylocks.errors import LockAlreadyHeld, LockExpired, LockNotOwned, InvalidLockValue
 from pylocks.util import make_id
 from pylocks.core.key_formatter import KeyFormatter
 from pylocks.core.lock_settings import LockSettings
@@ -45,7 +45,7 @@ class RedisLock(object):
         acquires a lock with key corresponding to `args_list`.
         returns a `LockHandle` on success with the ID and time of
         acquisition.
-        raises an `AlreadyLocked` exception on failure.
+        raises an `LockAlreadyHeld` exception on failure.
         """
         request = self.settings.make_request(args_list)
         return self.base_lock.acquire(self.settings.make_request(args_list))
@@ -89,7 +89,7 @@ class RedisLock(object):
             try:
                 self.base_lock.release_expected(req.key, expected)
                 released.append(args_list)
-            except LockNotHeld:
+            except LockNotOwned:
                 missing.append(arg_list)
         return released, missing
 
@@ -109,7 +109,7 @@ class RedisLock(object):
         key = self.settings.make_request(args_list).key
         result = self.redis_conn.delete(key)
         if not result:
-            raise LockNotHeld(key)
+            raise LockNotOwned(key)
 
     @classmethod
     def create(cls, prefix, ttl, redis_conn, arity=1):
@@ -129,16 +129,16 @@ class TestRedisLock(unittest.TestCase):
     def test_already_locked(self):
         lock = self.make_lock()
         handle = lock.acquire('x')
-        with self.assertRaises(AlreadyLocked):
+        with self.assertRaises(LockAlreadyHeld):
             lock.acquire('x')
-        with self.assertRaises(AlreadyLocked):
+        with self.assertRaises(LockAlreadyHeld):
             self.make_lock().acquire('x')
         handle.release()
         lock = self.make_lock()
         handle_2 = lock.acquire('x')
-        with self.assertRaises(AlreadyLocked):
+        with self.assertRaises(LockAlreadyHeld):
             lock.acquire('x')
-        with self.assertRaises(AlreadyLocked):
+        with self.assertRaises(LockAlreadyHeld):
             self.make_lock().acquire('x')
 
     def test_not_locked(self):
@@ -167,7 +167,7 @@ class TestRedisLock(unittest.TestCase):
         handle = lock.acquire('x')
         self.assertTrue(handle.do_i_still_have_lock())
         self.r.delete(lock.make_key('x'))
-        with self.assertRaises(LockNotHeld):
+        with self.assertRaises(LockNotOwned):
             handle.check_if_owned()
 
     def test_macquire_1(self):
