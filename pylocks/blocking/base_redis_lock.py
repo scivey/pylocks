@@ -142,6 +142,13 @@ class BaseRedisLock(object):
         if not result:
             raise LockNotHeld(key)
 
+    def get_handle(self, key, expected_id):
+        return SingleLockHandle.get_handle(
+            key=key,
+            expected_id=expected_id,
+            redis_conn=self.redis_conn
+        )
+
 
 class TestBaseRedisLock(unittest.TestCase):
     def setUp(self):

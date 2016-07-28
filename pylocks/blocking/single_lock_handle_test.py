@@ -3,7 +3,7 @@ import time
 from pylocks.testing.redis_test import RedisTest
 from pylocks.core.lock_handle_data import LockHandleData
 from pylocks.core.lock_request import LockRequest
-from pylocks.errors import LockNotHeld
+from pylocks.errors import LockNotHeld, LockExpired
 from .single_lock_handle import SingleLockHandle
 from .base_redis_lock import BaseRedisLock
 
@@ -44,3 +44,6 @@ class TestSingleLockHandle(RedisTest):
         self.lock._debug_hard_set_handle(handle)
         handle.check_if_owned()
 
+    def test_get_handle_1(self):
+        with self.assertRaises(LockExpired):
+            self.lock.get_handle('foo', 'bar')
