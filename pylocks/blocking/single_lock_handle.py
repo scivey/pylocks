@@ -22,7 +22,6 @@ class SingleLockHandle(object):
 
     @classmethod
     def deserialize(cls, data, redis_conn):
-        data = LockHandleData.deserialize(data)
         return cls(handle_data=LockHandleData.deserialize(data), redis_conn=redis_conn)
 
     def _check_if_same_id(self, raw_response):

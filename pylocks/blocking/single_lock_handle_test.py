@@ -27,15 +27,20 @@ def make_handle_data(key, handle_id, ttl=20):
     return data
 
 
-class TestSingleLockHandle(RedisTest):
+class TestBase(RedisTest):
     def setUp(self):
-        super(TestSingleLockHandle, self).setUp()
+        super(TestBase, self).setUp()
         self.lock = BaseRedisLock(redis_conn=self.r)
+        self.extra_setup()
 
     def make_handle(self, key, handle_id):
         data = make_handle_data(key, handle_id)
         return SingleLockHandle(handle_data=data, redis_conn=self.r)
 
+    def extra_setup(self):
+        pass
+
+class TestSingleLockHandle(TestBase):
     def test_check_if_owned_1(self):
         handle = self.make_handle('some-lock', 'some-handle-id')
         with self.assertRaises(LockNotOwned):
@@ -95,3 +100,21 @@ class TestSingleLockHandle(RedisTest):
         with self.assertRaises(BadNewsBears):
             with handle.releasing(ignore_failure=True):
                 raise BadNewsBears
+
+
+class TestGetHandle(TestBase):
+    def test_get_handle_1(self):
+        with self.assertRaises(LockExpired):
+            SingleLockHandle.get_handle('key', 'id', self.r)
+
+    def test_get_handle_2(self):
+        handle = self.lock.acquire(make_handle_data('foo', 'x').request)
+        handle.check_if_owned()
+        with self.assertRaises(LockExpired):
+            SingleLockHandle.get_handle('foo', 'not right!', self.r)
+
+    def test_get_handle_3(self):
+        handle = self.lock.acquire(make_handle_data('foo', 'x').request)
+        handle.check_if_owned()
+        handle2 = SingleLockHandle.get_handle('foo', handle.id, self.r)
+        handle2.check_if_owned()
