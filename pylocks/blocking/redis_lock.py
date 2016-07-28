@@ -3,10 +3,10 @@ import json
 import time
 from redis import WatchError
 
-from locks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
-from locks.util import make_id
-from locks.core.key_formatter import KeyFormatter
-from locks.core.lock_settings import LockSettings
+from pylocks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
+from pylocks.util import make_id
+from pylocks.core.key_formatter import KeyFormatter
+from pylocks.core.lock_settings import LockSettings
 from .single_lock_handle import SingleLockHandle
 from .base_redis_lock import BaseRedisLock
 

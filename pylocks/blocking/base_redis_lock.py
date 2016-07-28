@@ -1,11 +1,11 @@
 import unittest
 import json
 import time
-from locks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
-from locks.core.key_formatter import KeyFormatter
-from locks.util import make_id
-from locks.core.lock_handle_data import LockHandleData
-from locks.core.lock_request import LockRequest
+from pylocks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
+from pylocks.core.key_formatter import KeyFormatter
+from pylocks.util import make_id
+from pylocks.core.lock_handle_data import LockHandleData
+from pylocks.core.lock_request import LockRequest
 from .single_lock_handle import SingleLockHandle
 from redis import WatchError
 
@@ -19,6 +19,21 @@ class BaseRedisLock(object):
         the given key
         """
         return self.redis_conn.get(key) is not None
+
+    def _debug_hard_set_handle(self, lock_handle):
+        lock_request = lock_handle.handle_data.request
+        temp_key = '%s-%s' % (lock_request.key, lock_handle.id)
+        pipe = self.redis_conn.pipeline()
+        pipe.setex(
+            name=temp_key,
+            time=lock_request.initial_ttl,
+            value=lock_handle.serialize()
+        )
+        pipe.rename(temp_key, lock_request.key)
+        result = pipe.execute()
+        got_lock = result[1]
+        assert got_lock
+        return lock_handle
 
     def acquire(self, lock_request):
         """

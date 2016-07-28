@@ -1,6 +1,6 @@
 test:
-	py.test locks/*.py locks/**/*.py
+	py.test pylocks/*.py pylocks/**/*.py
 
 clean:
-	find locks -name "*.pyc" | xargs rm -f
-	find locks -name "__pycache__" | xargs rm -rf
+	find pylocks -name "*.pyc" | xargs rm -f
+	find pylocks -name "__pycache__" | xargs rm -rf

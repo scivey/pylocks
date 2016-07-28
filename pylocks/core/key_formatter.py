@@ -1,5 +1,5 @@
 import unittest
-from locks.errors import ArityError
+from pylocks.errors import ArityError
 
 class KeyFormatter(object):
     def __init__(self, prefix, arity=1, root_prefix='pylocks'):

@@ -1,5 +1,5 @@
 import pickle
-from locks.errors import SerializationError
+from pylocks.errors import SerializationError
 
 def serialize(x):
     return pickle.dumps(x, 2)

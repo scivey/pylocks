@@ -1,5 +1,5 @@
-from locks.core.lock_handle_data import LockHandleData
-from locks.errors import LockExpired, LockNotHeld
+from pylocks.core.lock_handle_data import LockHandleData
+from pylocks.errors import LockExpired, LockNotHeld
 from redis import WatchError
 import contextlib
 

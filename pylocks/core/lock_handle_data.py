@@ -1,9 +1,9 @@
 import unittest
 import json
 import time
-from locks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
-from locks.util import make_id
-from locks import serialization
+from pylocks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
+from pylocks.util import make_id
+from pylocks import serialization
 from .key_formatter import KeyFormatter
 from .lock_request import LockRequest
 
