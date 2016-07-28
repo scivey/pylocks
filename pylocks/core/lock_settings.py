@@ -1,6 +1,6 @@
 import time
 from locks.util import make_id
-from locks.key_formatter import KeyFormatter
+from .key_formatter import KeyFormatter
 from .lock_request import LockRequest
 
 class LockSettings(object):

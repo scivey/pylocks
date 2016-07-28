@@ -1,13 +1,14 @@
-from locks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
-from locks.key_formatter import KeyFormatter
-from locks.util import make_id
 import unittest
 import json
 import time
 from redis import WatchError
+
+from locks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
+from locks.util import make_id
+from locks.core.key_formatter import KeyFormatter
+from locks.core.lock_settings import LockSettings
 from .single_lock_handle import SingleLockHandle
 from .base_redis_lock import BaseRedisLock
-from .lock_settings import LockSettings
 
 
 class RedisLock(object):
@@ -37,7 +38,7 @@ class RedisLock(object):
         the given args list.
         """
         request = self.settings.make_request(args_list)
-        return self.base_lock.is_held(request.key)
+        return self.base_lock.is_held(self.make_key(args_list))
 
     def acquire(self, args_list):
         """

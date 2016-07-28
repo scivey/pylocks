@@ -1,13 +1,13 @@
-from locks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
-from locks.key_formatter import KeyFormatter
-from locks.util import make_id
 import unittest
 import json
 import time
-from redis import WatchError
+from locks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
+from locks.core.key_formatter import KeyFormatter
+from locks.util import make_id
+from locks.core.lock_handle_data import LockHandleData
+from locks.core.lock_request import LockRequest
 from .single_lock_handle import SingleLockHandle
-from .lock_handle_data import LockHandleData
-from .lock_request import LockRequest
+from redis import WatchError
 
 class BaseRedisLock(object):
     def __init__(self, redis_conn):

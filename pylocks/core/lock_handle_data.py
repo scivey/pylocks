@@ -1,11 +1,11 @@
-from locks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
-from locks.key_formatter import KeyFormatter
-from locks.util import make_id
-from locks import serialization
-from .lock_request import LockRequest
 import unittest
 import json
 import time
+from locks.errors import AlreadyLocked, LockExpired, LockNotHeld, InvalidLockValue
+from locks.util import make_id
+from locks import serialization
+from .key_formatter import KeyFormatter
+from .lock_request import LockRequest
 
 class LockHandleData(serialization.Serializable):
     def __init__(self, request, id, acquired_at):
