@@ -5,6 +5,10 @@
 			"path": ".",
             "folder_exclude_patterns": [
                 ".env", "__pycache__", ".cache"
+            ],
+            "file_exclude_patterns": [
+                "celerybeat-schedule",
+                "*.pid"
             ]
 		}
 	]

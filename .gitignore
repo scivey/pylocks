@@ -13,4 +13,5 @@ a.out
 *.egg-info
 *.tar.gz
 dist
-
+celerybeat.pid
+celerybeat-schedule
