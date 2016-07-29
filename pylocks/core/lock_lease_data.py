@@ -1,6 +1,6 @@
 from pylocks import serialization
 
-class LockHandleData(serialization.Serializable):
+class LockLeaseData(serialization.Serializable):
     def __init__(self, request, id, acquired_at):
         self.request = request
         self.id = id
@@ -17,5 +17,5 @@ class LockHandleData(serialization.Serializable):
         return hash((self.key, self.id))
 
     def __repr__(self):
-        return '<LockHandleData key=%r id=%r />' % (self.key, self.id)
+        return '<LockLeaseData key=%r id=%r />' % (self.key, self.id)
 

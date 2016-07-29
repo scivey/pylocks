@@ -1,10 +1,10 @@
 import time
 from pylocks.errors import LockAlreadyHeld, LockNotOwned
 from pylocks.util import make_id
-from pylocks.core.lock_handle_data import LockHandleData
-from .single_lock_handle import SingleLockHandle
+from pylocks.core.lock_lease_data import LockLeaseData
+from .blocking_redis_lease_handle import BlockingRedisLeaseHandle
 
-class BaseRedisLock(object):
+class BaseBlockingRedisLock(object):
     def __init__(self, redis_conn):
         self.redis_conn = redis_conn
 
@@ -32,16 +32,18 @@ class BaseRedisLock(object):
 
     def acquire(self, lock_request):
         """
-        acquires a lock on `key`
-        returns a `LockHandle` on success with the ID and time of
-        acquisition.
-        raises an `LockAlreadyHeld` exception on failure.
+        attempt to satisfy a `pylocks.core.lock_request.LockRequest`.
+
+        if successful, returns a `BlockingRedisLeaseHandle` containing
+        the unique lease id and time of acquisition
+
+        raises a `LockAlreadyHeld` exception on failure.
         """
         new_id = make_id()
         now = time.time()
-        possible_handle = SingleLockHandle(
+        possible_handle = BlockingRedisLeaseHandle(
             redis_conn=self.redis_conn,
-            handle_data=LockHandleData(
+            handle_data=LockLeaseData(
                 request=lock_request,
                 id=new_id,
                 acquired_at=now
@@ -65,24 +67,19 @@ class BaseRedisLock(object):
         """
         Attempt to acquire multiple locks simultaneously.
 
-        `args_lists` should be a list of tuples/lists when lock arity >= 2.
-            E.g. :
-                lock.macquire([('x', '1'), ('y', '1')])
-        for locks of arity == 1, either of these forms will work:
-                lock.macquire(['x', 'y'])
-                lock.macquire([('x',), ('y',)])
+        accepts a list of `pylocks.core.lock_request.LockRequest` objects.
 
         returns a tuple of:
-            - a dict mapping arg_lists to successful handles
-            - a list containins the args_list members which could not be locked
+            - a dict mapping lock requests to successfully obtained leases
+            - a list containing the requests which could not be met
 
         """
         now = time.time()
         to_set = []
         for request in lock_requests:
-            possible_handle = SingleLockHandle(
+            possible_handle = BlockingRedisLeaseHandle(
                 redis_conn=self.redis_conn,
-                handle_data=LockHandleData(
+                handle_data=LockLeaseData(
                     id=make_id(),
                     acquired_at=now,
                     request=request
@@ -120,25 +117,25 @@ class BaseRedisLock(object):
 
     def release_expected(self, key, expected_id):
         """
-        Release the key corresponding to `args_list`,
-        *if* its current ID matches `expected_id`.
+        Release the lock on `key` *if* the current lease ID
+        matches `expected_id`.
         """
-        possible_handle = self.LockHandle.get_handle(
+        possible_handle = self.LockHandle.get_lease_handle(
             key=key, id=expected_id, redis_conn=self.redis_conn
         )
         possible_handle.release()
 
     def release_hard(self, key):
         """
-        Releases any locks held on the key corresponding to `args_list`,
-        without checking acquisition IDs.
+        Releases any locks held on `key`,
+        without checking lease IDs.
         """
         result = self.redis_conn.delete(key)
         if not result:
             raise LockNotOwned(key)
 
-    def get_handle(self, key, expected_id):
-        return SingleLockHandle.get_handle(
+    def get_lease_handle(self, key, expected_id):
+        return BlockingRedisLeaseHandle.get_existing(
             key=key,
             expected_id=expected_id,
             redis_conn=self.redis_conn

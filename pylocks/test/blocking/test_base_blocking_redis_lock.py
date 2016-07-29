@@ -1,17 +1,17 @@
 import time
 import unittest
 from pylocks.errors import LockAlreadyHeld, LockNotOwned
-from pylocks.blocking.single_lock_handle import SingleLockHandle
-from pylocks.blocking.base_redis_lock import BaseRedisLock
+from pylocks.blocking.blocking_redis_lease_handle import BlockingRedisLeaseHandle
+from pylocks.blocking.base_blocking_redis_lock import BaseBlockingRedisLock
 from pylocks.core.lock_request import LockRequest
 
-class TestBaseRedisLock(unittest.TestCase):
+class TestBaseBlockingRedisLock(unittest.TestCase):
     def setUp(self):
         import redislite
         self.r = redislite.StrictRedis()
 
     def make_lock(self):
-        return BaseRedisLock(redis_conn=self.r)
+        return BaseBlockingRedisLock(redis_conn=self.r)
 
     def make_request(self, key, ttl=20):
         return LockRequest(
@@ -42,7 +42,7 @@ class TestBaseRedisLock(unittest.TestCase):
     def test_not_locked(self):
         lock = self.make_lock()
         result = lock.acquire(self.make_request('x'))
-        self.assertTrue(isinstance(result, SingleLockHandle))
+        self.assertTrue(isinstance(result, BlockingRedisLeaseHandle))
 
     def test_handle_still_holding_1(self):
         lock = self.make_lock()
@@ -74,7 +74,7 @@ class TestBaseRedisLock(unittest.TestCase):
         handles, missing = lock.macquire(reqs)
         self.assertEqual([], missing)
         self.assertEqual({'x' ,'y', 'z'}, set([h.key for h in handles.keys()]))
-        self.assertTrue(isinstance(handles['x'], SingleLockHandle))
+        self.assertTrue(isinstance(handles['x'], BlockingRedisLeaseHandle))
 
     def test_macquire_2(self):
         lock = self.make_lock()
@@ -84,7 +84,7 @@ class TestBaseRedisLock(unittest.TestCase):
         self.assertEqual(['y'], [m.key for m in missing])
         self.assertEqual({'x' , 'z'}, set([h.key for h in handles.keys()]))
         req = self.make_request('x')
-        self.assertTrue(isinstance(handles[req], SingleLockHandle))
+        self.assertTrue(isinstance(handles[req], BlockingRedisLeaseHandle))
 
     def test_releasing_1(self):
         lock = self.make_lock()

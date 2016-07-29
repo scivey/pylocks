@@ -2,7 +2,52 @@
 
 redis-backed locks and leases, aimed mostly at celery tasks
 
-## examples
+## basic examples
+```python
+import redis
+from pylocks.blocking import BlockingRedisLockFactory
+from pylocks.errors import LockAlreadyHeld
+
+person_lock_factory = BlockingRedisLockFactory(
+    prefix='people',
+    ttl=300,
+    arity=1,
+    root_prefix='example'
+)
+
+def main():
+    lock = person_lock_factory.build(redis_conn=redis.StrictRedis(
+        host='127.0.0.1', port=6379, db=2
+    ))
+    joe_lease = lock.acquire('joe')
+    with joe_lease.releasing():
+        last_err = None
+        try:
+            lock.acquire('joe')
+        except LockAlreadyHeld as err:
+            last_err = err
+        assert isinstance(last_err, LockAlreadyHeld)
+        last_err = None
+
+        bill_lease = lock.acquire('bill')
+        bill_lease.check_if_held()
+        bill_lease.release()
+        try:
+            bill_lease.check_if_held()
+        except LockNotHeld as err:
+            last_err = err
+        assert isinstance(last_err, LockNotHeld)
+
+        assert lock.is_held('joe')
+    assert not lock.is_held('joe')
+
+if __name__ == '__main__':
+    main()
+```
+
+
+## better examples
+
 
 In this example, a celery task is used to increment a given redis key by a given amount.  We're going to pretend that Redis doesn't have a built-in atomic increment, and that this requires two separate network calls for the get and set.  There are better alternatives to locking for this particular case -- it's just an example.
 
@@ -15,7 +60,7 @@ In the first approach, we try to acquire the lock once the task actually begins 
 
 ```python
 import redis
-from pylocks.blocking import RedisLockFactory
+from pylocks.blocking import BlockingRedisLockFactory
 from pylocks.errors import LockNotOwned, LockAlreadyHeld
 from some_app.workers import celery_app
 import logging
@@ -28,7 +73,7 @@ def lock_redis():
 def people_redis():
     return redis.StrictRedis(host='127.0.0.1', port=6379, db=1)
 
-person_lock = RedisLockFactory(
+person_lock = BlockingRedisLockFactory(
     prefix='person',
     ttl=60,
     arity=1,

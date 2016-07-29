@@ -1,10 +1,10 @@
 from __future__ import print_function
-from pylocks.core.lock_handle_data import LockHandleData
+from pylocks.core.lock_lease_data import LockLeaseData
 from pylocks.errors import LockExpired, LockNotOwned
 from redis import WatchError
 import contextlib
 
-class SingleLockHandle(object):
+class BlockingRedisLeaseHandle(object):
     def __init__(self, handle_data, redis_conn):
         self.handle_data = handle_data
         self.redis_conn = redis_conn
@@ -22,10 +22,10 @@ class SingleLockHandle(object):
 
     @classmethod
     def deserialize(cls, data, redis_conn):
-        return cls(handle_data=LockHandleData.deserialize(data), redis_conn=redis_conn)
+        return cls(handle_data=LockLeaseData.deserialize(data), redis_conn=redis_conn)
 
     def _check_if_same_id(self, raw_response):
-        result = LockHandleData.deserialize(raw_response)
+        result = LockLeaseData.deserialize(raw_response)
         return result.id == self.id
 
     def do_i_still_have_lock(self):
@@ -47,7 +47,7 @@ class SingleLockHandle(object):
             raise LockExpired(self.key, self.id)
 
     @classmethod
-    def get_handle(cls, key, expected_id, redis_conn):
+    def get_existing(cls, key, expected_id, redis_conn):
         """
         instantiates a handle for a given lock, which should
         already have been acquired.

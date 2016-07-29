@@ -1,16 +1,16 @@
 import unittest
-from pylocks.blocking.redis_lock import RedisLockFactory
-from pylocks.blocking.single_lock_handle import SingleLockHandle
+from pylocks.blocking.blocking_redis_lock import BlockingRedisLockFactory
+from pylocks.blocking.blocking_redis_lease_handle import BlockingRedisLeaseHandle
 from pylocks.errors import LockAlreadyHeld, LockNotOwned
 
 
-class TestRedisLock(unittest.TestCase):
+class TestBlockingRedisLock(unittest.TestCase):
     def setUp(self):
         import redislite
         self.r = redislite.StrictRedis()
         runner_self = self
 
-        class TestFactory(RedisLockFactory):
+        class TestFactory(BlockingRedisLockFactory):
             def get_redis_connection(self):
                 return runner_self.r
 
@@ -40,7 +40,7 @@ class TestRedisLock(unittest.TestCase):
     def test_not_locked(self):
         lock = self.make_lock()
         result = lock.acquire('x')
-        self.assertTrue(isinstance(result, SingleLockHandle))
+        self.assertTrue(isinstance(result, BlockingRedisLeaseHandle))
 
     def test_handle_still_holding_1(self):
         lock = self.make_lock()
@@ -71,7 +71,7 @@ class TestRedisLock(unittest.TestCase):
         handles, missing = lock.macquire(['x', 'y', 'z'])
         self.assertEqual([], missing)
         self.assertEqual({'x' ,'y', 'z'}, set(list(handles.keys())))
-        self.assertTrue(isinstance(handles['x'], SingleLockHandle))
+        self.assertTrue(isinstance(handles['x'], BlockingRedisLeaseHandle))
 
     def test_macquire_2(self):
         lock = self.make_lock()
@@ -79,7 +79,7 @@ class TestRedisLock(unittest.TestCase):
         handles, missing = lock.macquire(['x', 'y', 'z'])
         self.assertEqual(['y'], missing)
         self.assertEqual({'x' , 'z'}, set(list(handles.keys())))
-        self.assertTrue(isinstance(handles['x'], SingleLockHandle))
+        self.assertTrue(isinstance(handles['x'], BlockingRedisLeaseHandle))
 
     def test_releasing_1(self):
         lock = self.make_lock()

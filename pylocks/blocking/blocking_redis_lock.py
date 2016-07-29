@@ -2,14 +2,14 @@ import time
 from pylocks.errors import LockNotOwned
 from pylocks.core.lock_settings import LockSettings
 from pylocks.conf import DEFAULT_ROOT_PREFIX
-from .base_redis_lock import BaseRedisLock
+from .base_blocking_redis_lock import BaseBlockingRedisLock
 
 
-class RedisLock(object):
+class BlockingRedisLock(object):
     def __init__(self, settings, redis_conn):
         self.settings = settings
         self.redis_conn = redis_conn
-        self.base_lock = BaseRedisLock(redis_conn=redis_conn)
+        self.base_lock = BaseBlockingRedisLock(redis_conn=redis_conn)
 
     @property
     def arity(self):
@@ -119,15 +119,15 @@ class RedisLock(object):
             raise LockNotOwned(key)
 
 
-    def get_handle(self, args_list, expected_id):
+    def get_lease_handle(self, args_list, expected_id):
         key = self.settings.make_request(args_list).key
-        return self.base_lock.get_handle(
+        return self.base_lock.get_lease_handle(
             key=key,
             expected_id=expected_id
         )
 
 
-class RedisLockFactory(object):
+class BlockingRedisLockFactory(object):
     def __init__(self, prefix, ttl, arity, root_prefix=DEFAULT_ROOT_PREFIX):
         self.settings = LockSettings(prefix=prefix, ttl=ttl, arity=arity, root_prefix=root_prefix)
 
@@ -139,7 +139,7 @@ class RedisLockFactory(object):
                 pass
         if redis_conn is None:
             raise ValueError('Need a redis connection')
-        return RedisLock(settings=self.settings, redis_conn=redis_conn)
+        return BlockingRedisLock(settings=self.settings, redis_conn=redis_conn)
 
     def get_redis_connection(self):
         raise NotImplementedError

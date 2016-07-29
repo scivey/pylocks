@@ -1,3 +1,0 @@
-
-class LockWatcher(object):
-    pass

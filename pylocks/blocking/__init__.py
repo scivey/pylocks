@@ -1,2 +1,2 @@
-from .redis_lock import RedisLock, RedisLockFactory
-from .single_lock_handle import SingleLockHandle
+from .blocking_redis_lock import BlockingRedisLock, BlockingRedisLockFactory
+from .blocking_redis_lease_handle import BlockingRedisLeaseHandle
