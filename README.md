@@ -1,4 +1,4 @@
-## pylocks
+# pylocks
 
 redis-backed locks and leases, aimed mostly at celery tasks
 
@@ -7,6 +7,8 @@ redis-backed locks and leases, aimed mostly at celery tasks
 In this example, a celery task is used to increment a given redis key by a given amount.  We're going to pretend that Redis doesn't have a built-in atomic increment, and that this requires two separate network calls for the get and set.  There are better alternatives to locking for this particular case -- it's just an example.
 
 In order to prevent workers from interfering with each other, we're going to protect each key with its own lock in Redis.
+
+### naive approach
 
 In the first approach, we try to acquire the lock once the task actually begins execution.  If the lock is already held, we just fail.
 
@@ -49,7 +51,7 @@ def add_to_person(person_id, amount):
 ```
 
 
-## Confirming
+### lease-based approach
 
 
 In the more sophisticated approach, we try to acquire the lock prior to enqueuing a task for that person.  If acquiring the lock fails, we don't enqueue a task.  Otherwise, we enqueue the task and *also pass it a lease ID*.
