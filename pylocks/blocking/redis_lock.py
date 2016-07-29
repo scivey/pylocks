@@ -7,6 +7,7 @@ from pylocks.errors import LockAlreadyHeld, LockExpired, LockNotOwned, InvalidLo
 from pylocks.util import make_id
 from pylocks.core.key_formatter import KeyFormatter
 from pylocks.core.lock_settings import LockSettings
+from pylocks.conf import DEFAULT_ROOT_PREFIX
 from .single_lock_handle import SingleLockHandle
 from .base_redis_lock import BaseRedisLock
 
@@ -82,6 +83,18 @@ class RedisLock(object):
         return locked_by_args, missing_by_args
 
     def mrelease_expected(self, args_lists_to_ids):
+        """
+        Attempt to release multiple locks simultaneously, conditional on the given
+        lease IDs.
+
+        `args_lists_to_ids` should be a dict mapping tuples of length `arity`
+        to expected lease IDs.
+
+        returns a tuple of:
+            - a list containing args_lists which were released
+            - a list containing args_lists which were not released
+
+        """
         released = []
         missing = []
         for arg_list, expected in args_lists_to_ids.items():
@@ -105,26 +118,57 @@ class RedisLock(object):
         """
         Releases any locks held on the key corresponding to `args_list`,
         without checking acquisition IDs.
+
+        `release_expected` is a better idea in many situations, but not all of them.
         """
         key = self.settings.make_request(args_list).key
         result = self.redis_conn.delete(key)
         if not result:
             raise LockNotOwned(key)
 
-    @classmethod
-    def create(cls, prefix, ttl, redis_conn, arity=1):
-        settings = LockSettings(prefix=prefix, ttl=ttl, arity=arity)
-        return cls(settings=settings, redis_conn=redis_conn)
 
+    def get_handle(self, args_list, expected_id):
+        key = self.settings.make_request(args_list).key
+        return self.base_lock.get_handle(
+            key=key,
+            expected_id=expected_id
+        )
+
+
+class RedisLockFactory(object):
+    def __init__(self, prefix, ttl, arity, root_prefix=DEFAULT_ROOT_PREFIX):
+        self.settings = LockSettings(prefix=prefix, ttl=ttl, arity=arity, root_prefix=root_prefix)
+
+    def build(self, redis_conn=None):
+        if redis_conn is None:
+            try:
+                redis_conn = self.get_redis_connection()
+            except NotImplementedError:
+                pass
+        if redis_conn is None:
+            raise ValueError('Need a redis connection')
+        return RedisLock(settings=self.settings, redis_conn=redis_conn)
+
+    def get_redis_connection(self):
+        raise NotImplementedError
 
 
 class TestRedisLock(unittest.TestCase):
     def setUp(self):
         import redislite
         self.r = redislite.StrictRedis()
+        runner_self = self
+
+        class TestFactory(RedisLockFactory):
+            def get_redis_connection(self):
+                return runner_self.r
+
+        self.lock_factory = TestFactory(
+            prefix='foo', ttl=60, arity=1
+        )
 
     def make_lock(self):
-        return RedisLock.create(prefix='foo', ttl=60, redis_conn=self.r, arity=1)
+        return self.lock_factory.build()
 
     def test_already_locked(self):
         lock = self.make_lock()
@@ -142,7 +186,7 @@ class TestRedisLock(unittest.TestCase):
             self.make_lock().acquire('x')
 
     def test_not_locked(self):
-        lock = RedisLock.create(prefix='foo', ttl=60, redis_conn=self.r, arity=1)
+        lock = self.make_lock()
         result = lock.acquire('x')
         self.assertTrue(isinstance(result, SingleLockHandle))
 

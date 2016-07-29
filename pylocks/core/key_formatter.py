@@ -1,8 +1,9 @@
 import unittest
 from pylocks.errors import ArityError
+from pylocks.conf import DEFAULT_ROOT_PREFIX
 
 class KeyFormatter(object):
-    def __init__(self, prefix, arity=1, root_prefix='pylocks'):
+    def __init__(self, prefix, arity=1, root_prefix=DEFAULT_ROOT_PREFIX):
         self.prefix = prefix
         self.arity = 1
         self.root_prefix = root_prefix
