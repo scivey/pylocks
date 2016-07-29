@@ -6,7 +6,7 @@ INSTALL_REQUIRES = [
 
 setup(
     name='pylocks',
-    version='0.2.0',
+    version='0.2.1',
     description="redis-backed locks and leases",
     classifiers=[
         'License :: OSI Approved :: MIT License',

@@ -15,7 +15,6 @@ class Serializable(object):
 
     @classmethod
     def deserialize(cls, data):
-        print('deserialize', data)
         instance = deserialize_impl(data)
         if not isinstance(instance, cls):
             raise SerializationError(data)
