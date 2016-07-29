@@ -1,4 +1,3 @@
-import unittest
 from pylocks.errors import ArityError
 from pylocks.conf import DEFAULT_ROOT_PREFIX
 
@@ -10,7 +9,7 @@ class KeyFormatter(object):
 
     def _make_key(self, args):
         if not isinstance(args, (list, tuple)) and self.arity == 1:
-            args_list = [args_list]
+            args = [args]
         key_part = ':'.join(list(map(str, list(args))))
         return '%s:%s:%s' % (self.root_prefix, self.prefix, key_part)
 
@@ -22,12 +21,3 @@ class KeyFormatter(object):
         self._check_arity(args)
         return self._make_key(args)
 
-
-class TestKeyFormatter(unittest.TestCase):
-    def test_format_arity(self):
-        fmt = KeyFormatter(prefix='foo', arity=1, root_prefix='root')
-        with self.assertRaises(ArityError):
-            fmt.format('x', 'y')
-        with self.assertRaises(ArityError):
-            fmt.format()
-        self.assertEqual('root:foo:x', fmt.format('x'))

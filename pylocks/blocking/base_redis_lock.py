@@ -1,13 +1,8 @@
-import unittest
-import json
 import time
-from pylocks.errors import LockAlreadyHeld, LockExpired, LockNotOwned, InvalidLockValue
-from pylocks.core.key_formatter import KeyFormatter
+from pylocks.errors import LockAlreadyHeld, LockNotOwned
 from pylocks.util import make_id
 from pylocks.core.lock_handle_data import LockHandleData
-from pylocks.core.lock_request import LockRequest
 from .single_lock_handle import SingleLockHandle
-from redis import WatchError
 
 class BaseRedisLock(object):
     def __init__(self, redis_conn):
@@ -148,92 +143,4 @@ class BaseRedisLock(object):
             expected_id=expected_id,
             redis_conn=self.redis_conn
         )
-
-
-class TestBaseRedisLock(unittest.TestCase):
-    def setUp(self):
-        import redislite
-        self.r = redislite.StrictRedis()
-
-    def make_lock(self):
-        return BaseRedisLock(redis_conn=self.r)
-
-    def make_request(self, key, ttl=20):
-        return LockRequest(
-            key=key,
-            request_time=time.time(),
-            initial_ttl=ttl,
-            lock_arity=1,
-            lock_prefix='lock',
-            root_prefix='pylocks:test'
-        )
-
-    def test_already_locked(self):
-        lock = self.make_lock()
-        handle = lock.acquire(self.make_request('x'))
-
-        with self.assertRaises(LockAlreadyHeld):
-            lock.acquire(self.make_request('x'))
-        with self.assertRaises(LockAlreadyHeld):
-            self.make_lock().acquire(self.make_request('x'))
-        handle.release()
-        lock = self.make_lock()
-        handle_2 = lock.acquire(self.make_request('x'))
-        with self.assertRaises(LockAlreadyHeld):
-            lock.acquire(self.make_request('x'))
-        with self.assertRaises(LockAlreadyHeld):
-            self.make_lock().acquire(self.make_request('x'))
-
-    def test_not_locked(self):
-        lock = self.make_lock()
-        result = lock.acquire(self.make_request('x'))
-        self.assertTrue(isinstance(result, SingleLockHandle))
-
-    def test_handle_still_holding_1(self):
-        lock = self.make_lock()
-        handle = lock.acquire(self.make_request('x'))
-        self.assertTrue(handle.do_i_still_have_lock())
-        self.r.delete(self.make_request('x').key)
-        self.assertFalse(handle.do_i_still_have_lock())
-
-    def test_handle_still_holding_2(self):
-        lock = self.make_lock()
-        handle = lock.acquire(self.make_request('x'))
-        self.assertTrue(handle.do_i_still_have_lock())
-        self.r.delete(self.make_request('x').key)
-        handle_2 = lock.acquire(self.make_request('x'))
-        self.assertTrue(handle_2.do_i_still_have_lock())
-        self.assertFalse(handle.do_i_still_have_lock())
-
-    def test_handle_still_holding_3(self):
-        lock = self.make_lock()
-        handle = lock.acquire(self.make_request('x'))
-        self.assertTrue(handle.do_i_still_have_lock())
-        self.r.delete(self.make_request('x').key)
-        with self.assertRaises(LockNotOwned):
-            handle.check_if_owned()
-
-    def test_macquire_1(self):
-        lock = self.make_lock()
-        reqs = list(map(self.make_request, ['x', 'y', 'z']))
-        handles, missing = lock.macquire(reqs)
-        self.assertEqual([], missing)
-        self.assertEqual({'x' ,'y', 'z'}, set([h.key for h in handles.keys()]))
-        self.assertTrue(isinstance(handles['x'], SingleLockHandle))
-
-    def test_macquire_2(self):
-        lock = self.make_lock()
-        existing = lock.acquire(self.make_request('y'))
-        reqs = list(map(self.make_request, ['x', 'y', 'z']))
-        handles, missing = lock.macquire(reqs)
-        self.assertEqual(['y'], [m.key for m in missing])
-        self.assertEqual({'x' , 'z'}, set([h.key for h in handles.keys()]))
-        req = self.make_request('x')
-        self.assertTrue(isinstance(handles[req], SingleLockHandle))
-
-    def test_releasing_1(self):
-        lock = self.make_lock()
-        self.assertFalse(lock.is_held('x'))
-        handle = lock.acquire(self.make_request('x'))
-        self.assertTrue(lock.is_held('x'))
 

@@ -1,5 +1,4 @@
 import time
-from pylocks.util import make_id
 from .key_formatter import KeyFormatter
 from .lock_request import LockRequest
 

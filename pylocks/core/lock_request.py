@@ -1,3 +1,5 @@
+
+
 class LockRequest(object):
     def __init__(self, key, request_time, initial_ttl, lock_arity, lock_prefix, root_prefix='pylocks'):
         self.key = key

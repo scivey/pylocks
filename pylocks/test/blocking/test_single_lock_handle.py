@@ -1,12 +1,12 @@
 import time
 
-from pylocks.testing.redis_test import RedisTest
-from pylocks.testing.errors import BadNewsBears
+from pylocks.test.redis_test import RedisTest
+from pylocks.test.errors import BadNewsBears
 from pylocks.core.lock_handle_data import LockHandleData
 from pylocks.core.lock_request import LockRequest
 from pylocks.errors import LockNotOwned, LockExpired, LockAlreadyHeld
-from .single_lock_handle import SingleLockHandle
-from .base_redis_lock import BaseRedisLock
+from pylocks.blocking.single_lock_handle import SingleLockHandle
+from pylocks.blocking.base_redis_lock import BaseRedisLock
 
 def make_handle_data(key, handle_id, ttl=20):
     now = time.time()

@@ -10,3 +10,4 @@ pytz==2016.6.1
 redis==2.10.5
 redislite==3.0.296
 wheel==0.26.0
+pyflakes==1.2.3

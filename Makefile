@@ -1,5 +1,5 @@
 test:
-	py.test pylocks/*.py pylocks/**/*.py
+	py.test pylocks
 
 clean:
 	find pylocks -name "*.pyc" | xargs rm -f
@@ -10,3 +10,6 @@ clean:
 release:
 	python setup.py sdist upload
 
+
+pyflakes:
+	pyflakes pylocks
